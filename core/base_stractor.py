@@ -1,11 +1,10 @@
 from __future__ import annotations
-from abc import ABC, abstractmethod
 from typing import Any, Dict
 import os
 import paramiko
 from types import SimpleNamespace
 from core.exceptions import RetryableExtractError, NonRetryableExtractError
-
+from core.utils import asegurar_directorio_sftp
 
 
 class BaseExtractorSFTP():
@@ -22,10 +21,19 @@ class BaseExtractorSFTP():
         c = self._cfg
         required = ["host", "port", "username", "remote_dir", "specific_filename", "local_dir"]
         missing = [k for k in required if k not in c or c[k] in (None, "")]
-        print("validó campos de forma exitosa")
         if missing:
-            raise NonRetryableExtractError(f"Config SFTP faltante: {missing}")
-         
+            return {
+                "status": "error",
+                "code": 500,
+                "message": f"Flata campos {missing}"
+            }
+        print("campos minimos necesarios comprobado")
+        return {
+                "status": "success",
+                "code": 200,
+                "message": f"Todo correcto"
+            }
+       
     @property
     def config(self) -> SimpleNamespace:
         "Acceso por atributos: e.g. self.config.host"
@@ -41,12 +49,21 @@ class BaseExtractorSFTP():
             sftp.close()
             transport.close()
             print('conexion exitosa')
-            return "conexion exitosa"
+            return {
+            "status": "success",
+            "code": 200,
+            "message": "Conexión exitosa"
+            }
         except Exception as e:
-            print('error de conexion', e)
-            return str(e)
+            print('error de conexion: -- ', e) 
+            return {
+                "status": "error",
+                "code": 401,
+                "message": f"Conexión exitosa:  {str(e)}"
+            }
+       
  
-    def extract(self) -> str:
+    def extract(self,remotetransfere=False) -> str:
         try:
             
             transport = paramiko.Transport((self.config.host, self.config.port))
@@ -57,23 +74,40 @@ class BaseExtractorSFTP():
             ruta_local=self.config.local_dir
             transport.connect(username=usuario, password=password)
             sftp = paramiko.SFTPClient.from_transport(transport)
-           
-            
-            try:
+        
+            if(remotetransfere):
 
-                os.makedirs(ruta_local, exist_ok=True)
-  
-                print("se creó : ",ruta_local)
-            except:
-                print('la carpeta ya existe')
+                asegurar_directorio_sftp(sftp, ruta_local)
+                sftp.rename(rutasftp + '/' + archivo, ruta_local + '/' + archivo)
+                print(f"Archivo movido con éxito de {rutasftp+'/'+archivo} a {ruta_local}")
+
+
+            else:    
+                try:
+                    os.makedirs(ruta_local, exist_ok=True)
+    
+                    print("se creó : ",ruta_local)
+                except:
+                    print('la carpeta ya existe')
+                    
+                sftp.get(rutasftp+'/'+archivo, ruta_local+'/'+archivo)
             
-            sftp.get(rutasftp+'/'+archivo, ruta_local+'/'+archivo)
             sftp.close()    
             transport.close()
             print("se extrajo correctamente")
-            return ruta_local+'/'+archivo
+            return {
+            "status": "success",
+            "code": 200,
+            "message": "se extrajo correctamente en "+ ruta_local+'/'+archivo ,
+            }
+        
         except Exception as e:
             print('error de extracción', e)
-            return str(e)
+            return {
+            "status": "error",
+            "code": 500,
+            "message": f"Error de estracción, error->: {e}"
+            }
+       
 
 

@@ -164,6 +164,7 @@ cython_debug/
 # Poetry local configuration file - https://python-poetry.org/docs/configuration/#local-configuration
 poetry.toml
 
+
 # ruff
 .ruff_cache/
 
@@ -175,3 +176,5 @@ pyrightconfig.json
 # Ignorar archivos YAML
 *.yaml
 *.yml
+envenergy/
+

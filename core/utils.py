@@ -24,3 +24,17 @@ def load_config(pathrelative: str) -> dict:
         raise ConfigError(f"Error al parsear YAML: {e}") from e
 
 
+
+def asegurar_directorio_sftp(sftp, ruta_completa):
+
+    partes = ruta_completa.strip('/').split('/')
+    path_actual = ''
+    for parte in partes:
+        path_actual += '/' + parte
+        try:
+            a=sftp.stat(path_actual) 
+        except FileNotFoundError:
+            print(f"Creando carpeta: {path_actual}")
+            sftp.mkdir(path_actual)
+
+
