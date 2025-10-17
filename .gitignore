@@ -174,7 +174,7 @@ pyrightconfig.json
 **/__pycache__/
 
 # Ignorar archivos YAML
-*.yaml
-*.yml
+#*.yaml
+#*.yml
 envenergy/
 

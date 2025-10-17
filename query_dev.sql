@@ -52,13 +52,9 @@ CREATE TABLE RAW.SFTP_MM_CONSUMO_SUMINISTRO (
     pot_gen_pu            VARCHAR(255),
     pot_gen_importe       VARCHAR(255),
 
-    pot_dist_fact_hp      VARCHAR(255),
-    pot_dist_pu_hp        VARCHAR(255),
-    pot_dist_importe_hp   VARCHAR(255),
-
-    pot_dist_fact_fp      VARCHAR(255),
-    pot_dist_pu_fp        VARCHAR(255),
-    pot_dist_importe_fp   VARCHAR(255),
+    pot_dist_fact         VARCHAR(255),
+    pot_dist_pu           VARCHAR(255),
+    pot_dist_importe      VARCHAR(255),
 
     pot_bt6_pu            VARCHAR(255),
     pot_bt6_monto         VARCHAR(255),
@@ -163,13 +159,9 @@ CREATE TABLE ODS.SFTP_HM_CONSUMO_SUMINISTRO (
     pot_gen_pu            NUMERIC(18,6),
     pot_gen_importe       NUMERIC(18,2),
 
-    pot_dist_fact_hp      NUMERIC(18,2),
-    pot_dist_pu_hp        NUMERIC(18,6),
-    pot_dist_importe_hp   NUMERIC(18,2),
-
-    pot_dist_fact_fp      NUMERIC(18,2),
-    pot_dist_pu_fp        NUMERIC(18,6),
-    pot_dist_importe_fp   NUMERIC(18,2),
+    pot_dist_fact         NUMERIC(18,2),
+    pot_dist_pu           NUMERIC(18,6),
+    pot_dist_importe      NUMERIC(18,2),
 
     pot_bt6_pu            NUMERIC(18,6),
     pot_bt6_monto         NUMERIC(18,2),
@@ -226,3 +218,5 @@ CREATE TABLE ODS.SFTP_HM_CONSUMO_SUMINISTRO (
     devolucion            NUMERIC(18,2),
     fecha_Liquidacion     DATE
 );
+
+--

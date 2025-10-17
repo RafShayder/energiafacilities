@@ -6,8 +6,14 @@ from types import SimpleNamespace
 from core.exceptions import RetryableExtractError, NonRetryableExtractError
 from core.utils import asegurar_directorio_sftp
 
-
 class BaseExtractorSFTP():
+    """
+      Clase estandar de extracción de datos
+      - variables: config(parametros de conexión al sftp) 
+      - soporta ->  extrae todo tipo de archivo
+      - permite verificar conectividad y parametros necesarios para conexion
+    """
+    
     def __init__(self, config: dict):
         
         super().__init__()
@@ -16,7 +22,9 @@ class BaseExtractorSFTP():
         
         self._cfg: Dict[str, Any] = config
         self._cfg_obj = SimpleNamespace(**config)
-        
+    # ----------
+    #  VALIDA CAMPOS OBLIGATORIOS
+    # ----------   
     def validate(self) -> None:
         c = self._cfg
         required = ["host", "port", "username", "remote_dir", "specific_filename", "local_dir"]
@@ -39,6 +47,9 @@ class BaseExtractorSFTP():
         "Acceso por atributos: e.g. self.config.host"
         return self._cfg_obj
     
+    # ----------
+    #  VALIDAR CONEXION
+    # ----------
     def validar_conexion(self):
         try:
             transport = paramiko.Transport((self.config.host, self.config.port))
@@ -62,8 +73,15 @@ class BaseExtractorSFTP():
                 "message": f"Conexión exitosa:  {str(e)}"
             }
        
- 
+    # ----------
+    #  EXTRAE DATOS
+    # ----------
     def extract(self,remotetransfere=False) -> str:
+        """
+            Tiene dos formas
+            1: remotetransfere: Falso, descarga la data en el ruta lacal que se pasa
+            2: remotetransfere: True, transfiere la data a la ruta en el host, tomando como ruta local_dir
+        """
         try:
             
             transport = paramiko.Transport((self.config.host, self.config.port))
@@ -99,6 +117,7 @@ class BaseExtractorSFTP():
             "status": "success",
             "code": 200,
             "message": "se extrajo correctamente en "+ ruta_local+'/'+archivo ,
+            "ruta": ruta_local+'/'+archivo
             }
         
         except Exception as e:
