@@ -1,6 +1,7 @@
 from __future__ import annotations
 import logging
 from envyaml import EnvYAML
+from pathlib import Path
 from dotenv import load_dotenv
 import os
 from core.exceptions import ConfigError #agregar las excepciones
@@ -35,6 +36,8 @@ def load_config(env: str | None = None) -> dict:
 
         load_dotenv()
         env = env or os.getenv("ENV_MODE", "dev").lower()
+        base_dir = Path(__file__).resolve().parent.parent
+        config_path = base_dir / "config" / f"config_{env}.yaml"
         config_path = f"config/config_{env}.yaml"
         
         if not os.path.exists(config_path):
@@ -63,9 +66,12 @@ def asegurar_directorio_sftp(sftp, ruta_completa):
             sftp.mkdir(path_actual)
 
 
-def traerjson(archivo='config/columns_map.json',valor=None):
+def traerjson(archivo='',valor=None):
+    
+    base_dir = Path(__file__).resolve().parent.parent
+    config_path = base_dir / archivo
 
-    with open(archivo, 'r') as file:
+    with open(config_path, 'r') as file:
         datos = json.load(file)
         # Imprimir los datos cargados
         if (valor):
