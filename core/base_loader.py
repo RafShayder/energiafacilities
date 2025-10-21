@@ -1,10 +1,12 @@
 from __future__ import annotations
+from tkinter import RAISED
 from typing import Any, Dict, Optional
 from types import SimpleNamespace
 import pandas as pd
 import psycopg2
 from psycopg2.extras import execute_values
-from core.exceptions import NonRetryableExtractError
+import logging
+logger = logging.getLogger(__name__)
 
 class BaseLoaderPostgres:
     """
@@ -18,9 +20,11 @@ class BaseLoaderPostgres:
 
     def __init__(self, config: dict, configload: dict):
         if not isinstance(config, dict):
-            raise TypeError("config debe ser un dict con las claves esperadas")
+            logger.error("config debe ser un dict con las claves esperadas")
+            raise
         if not isinstance(configload, dict):
-            raise TypeError("configload debe ser un dict con los parámetros de carga")
+            logger.error("configload debe ser un dict con los parámetros de carga")
+            raise
 
         self._cfg = SimpleNamespace(**config)
         self._cfgload = SimpleNamespace(**configload)
@@ -29,17 +33,18 @@ class BaseLoaderPostgres:
     #  CONEXIÓN
     # ----------
     def _connect(self):
+        logger.info("Se está verificando conectividad a la DB")
         """Crea conexión a PostgreSQL"""
-        try:
-            return psycopg2.connect(
-                host=self._cfg.host,
-                port=self._cfg.port,
-                dbname=self._cfg.database,
-                user=self._cfg.user,
-                password=self._cfg.password
+
+        conexion= psycopg2.connect(
+            host=self._cfg.host,
+            port=self._cfg.port,
+            dbname=self._cfg.database,
+            user=self._cfg.user,
+            password=self._cfg.password
             )
-        except Exception as e:
-            raise NonRetryableExtractError(f"Error al conectar a PostgreSQL: {e}")
+        return conexion
+
     # ----------
     #  VALIDAR CONECTIVIDAD
     # ----------
@@ -47,9 +52,13 @@ class BaseLoaderPostgres:
         """Verifica si la conexión al host es exitosa"""
         try:
             self._connect().close()
-            return {"status": "success", "code": 200, "message": f"Conexión exitosa a {self._cfg.host}"}
+            retornoinfo= {"status": "success", "code": 200, "etl_msg": f"Conexión exitosa a {self._cfg.host}"}
+            logger.info("Se conectó correctamente",extra=retornoinfo)
+            return retornoinfo
         except Exception as e:
-            return {"status": "error", "code": 401, "message": f"Error de conectividad: {str(e)}"}
+            retornoinfo={"status": "error", "code": 401, "etl_msg": f"Error de conectividad: {str(e)}"}
+            logger.error(f"Error de conectividad: {str(e)}",extra=retornoinfo)
+            raise
 
     # ----------
     #  VERIFICA LAS COLUMNAS DEL JSON
@@ -68,14 +77,16 @@ class BaseLoaderPostgres:
                 df = pd.read_csv(data)
                 origen = f"Archivo CSV ({data})"
             else:
-                raise NonRetryableExtractError("Formato no soportado (debe ser DataFrame, Excel o CSV)")
-
-            print(f" {origen} leído con {len(df.columns)} columnas.")
+                retornoinfo="Formato no soportado (debe ser DataFrame, Excel o CSV)"
+                logger.info(retornoinfo)
+                raise 
+            
+            logger.info(f" {origen} leído con {len(df.columns)} columnas.")
 
             # --- Aplicar mapeo si existe
             if column_mapping:
                 df = df.rename(columns=column_mapping)
-                print(" Mapeo de columnas aplicado.")
+                logger.info("Mapeo de columnas aplicado -> se estandarizó cabeceras")
 
             columnas_origen = set(df.columns)
 
@@ -95,20 +106,26 @@ class BaseLoaderPostgres:
             faltantes = columnas_tabla - columnas_origen
        
             if faltantes:
-                return {
+                retornoinfo={
                     "status": "error",
                     "code": 400,
-                    "message": f"Columnas no encontradas en la tabla destino: {', '.join(faltantes)}"
+                    "etl_msg": f"Columnas no encontradas en la tabla destino: {', '.join(faltantes)}"
                 }
-
-            print(" Verificación de columnas exitosa.")
+                logger.error("Error de match columnas", extra=retornoinfo)
+                raise
+            
+            logger.info("Verificacion de campos minimos exitoso")
+            
             if sobrantes:
-                print(f" Alerta: la tabla tiene columnas adicionales que no están en el origen: {', '.join(sobrantes)}")
-
-            return {"status": "success", "code": 200, "message": "Columnas verificadas correctamente"}
-
+                logger.warning(f"la tabla base tiene columnas adicionales que no están en el origen: {', '.join(sobrantes)}")
+            
+            retornoinfo={"status": "success", "code": 200, "etl_msg": "Columnas verificadas correctamente"}
+            logger.info("Columnas verificadas correctamente",extra=retornoinfo)
+            
+            return retornoinfo
         except Exception as e:
-            raise NonRetryableExtractError(f"Error durante verificación de columnas: {e}")
+            logger.info(f"Error durante verificación de columnas: {e}")
+            raise 
 
     # ----------
     #  METODO DE CARGA DE DATOS
@@ -129,7 +146,8 @@ class BaseLoaderPostgres:
             elif isinstance(data, str) and data.lower().endswith(".csv"):
                 df = pd.read_csv(data)
             else:
-                raise NonRetryableExtractError("Formato de entrada no reconocido")
+                logger.error("Formato de archivo de entrada no reconocido, (xls,xlsx,csv) <- no encontrado")
+                raise 
 
             if column_mapping:
                 df = df.rename(columns=column_mapping)
@@ -137,13 +155,13 @@ class BaseLoaderPostgres:
                 df = df[columnas_existentes].rename(columns=column_mapping)
 
             batch = batch_size or getattr(self._cfgload, "chunksize", 10000)
-
-            print(f" Iniciando carga: {len(df)} filas, {len(df.columns)} columnas")
+            logger.info(f" Iniciando carga: {len(df)} filas, {len(df.columns)} columnas")
             return self.insert_dataframe(df, batch_size=batch)
 
         except Exception as e:
-            raise NonRetryableExtractError(f"Error al cargar los datos: {e}")
-
+            logger.error(f"Error al cargar los datos: {e}")
+            raise
+        
     # ----------
     #  INSERTAMOS POR LOTES
     # ----------
@@ -152,12 +170,14 @@ class BaseLoaderPostgres:
 
         # Validación inicial: DataFrame vacío
         if df.empty:
-            return {
+            retornoinfo={
                 "status": "error",
                 "code": 204,
-                "message": "DataFrame vacío, no hay datos para insertar"
+                "etl_msg": "DataFrame vacío, no hay datos para insertar"
             }
-
+            logger.error("DataFrame vacío, no hay datos para insertar",extra=retornoinfo)
+            raise 
+        
         try:
             cols = ', '.join(df.columns)
             full_table = f"{self._cfgload.schema}.{self._cfgload.table}"
@@ -181,18 +201,20 @@ class BaseLoaderPostgres:
                     if modo == "fail":
                         if tabla_existe:
                             # FAIL: tabla ya existe → no sobreescribir
-                            return {
+                            retornoinfo={
                                 "status": "error",
                                 "code": 409,
-                                "message": f"La tabla {full_table} ya existe y la política if_exists='fail' impide sobreescribir."
+                                "etl_msg": f"La tabla {full_table} ya existe y la política if_exists='fail' impide sobreescribir."
                             }
+                            logger.error("Politica de fail no permite crear tabla si ya existe",retornoinfo)
+                            raise
                         else:
                             # FAIL: crear automáticamente según el DataFrame
                             columnas_sql = ', '.join([f'"{col}" TEXT' for col in df.columns])
                             create_sql = f'CREATE TABLE {full_table} ({columnas_sql});'
                             cur.execute(create_sql)
                             conn.commit()
-                            print(f"Tabla {full_table} creada automáticamente (modo 'fail').")
+                            logger.info(f"Tabla {full_table} creada automáticamente (modo 'fail').")
                             
                     elif modo == "replace":
                         if tabla_existe:
@@ -204,11 +226,13 @@ class BaseLoaderPostgres:
                         pass
 
                     else:
-                        return {
+                        retornoinfo={
                             "status": "error",
                             "code": 400,
-                            "message": f"Valor de if_exists no reconocido: '{modo}'. Usa 'append', 'replace' o 'fail'."
+                            "etl_msg": f"Valor de if_exists no reconocido: '{modo}'. Usa 'append', 'replace' o 'fail'."
                         }
+                        logger.error("no se reconoce el tipo de inserción != (append, replace,failt)",retornoinfo)
+                        raise
 
                     # Inserción por lotes
                     insert_sql = f"INSERT INTO {full_table} ({cols}) VALUES %s"
@@ -218,28 +242,31 @@ class BaseLoaderPostgres:
                         values = [tuple(x) for x in chunk.to_numpy()]
                         execute_values(cur, insert_sql, values)
                         conn.commit()
-
-            return {
+            logger.info(f"{total_rows} filas insertadas correctamente con modo '{modo}'")
+            retornoinfo={
                 "status": "success",
                 "code": 200,
-                "message": f"{total_rows} filas insertadas correctamente con modo '{modo}'"
+                "etl_msg": f"{total_rows} filas insertadas correctamente con modo '{modo}'"
             }
+            return retornoinfo
 
         # ----------
         #  MANEJO DE ERRORES
         # ----------
         except psycopg2.OperationalError as e:
             # Errores para reintento
-            return {
+            retornoinfo= {
                 "status": "error",
                 "code": 502,
-                "message": f"Error operativo en PostgreSQL (reintentar): {e}"
+                "etl_msg": f"Error operativo en PostgreSQL (reintentar): {e}"
             }
+            logger.error("Error de postgress operativo, generar reintento",retornoinfo)
 
         except Exception as e:
             # Errores criticos: formato incorrecto, permisos, etc.
-            return {
+            retornoinfo= {
                 "status": "error",
                 "code": 500,
-                "message": f"Error durante la inserción: {e}"
+                "etl_msg": f"Error durante la inserción: {e}"
             }
+            logger.error("Se produjo un error durante la inserción", extra=retornoinfo)

@@ -3,9 +3,10 @@ from typing import Any, Dict
 import os
 import paramiko
 from types import SimpleNamespace
-from core.exceptions import RetryableExtractError, NonRetryableExtractError
 from core.utils import asegurar_directorio_sftp
+import logging
 
+logger=logging.getLogger(__name__)
 class BaseExtractorSFTP():
     """
       Clase estandar de extracción de datos
@@ -18,7 +19,8 @@ class BaseExtractorSFTP():
         
         super().__init__()
         if not isinstance(config, dict):
-            raise TypeError("config debe ser un dict con las claves esperadas")
+            logger.error("config debe ser un dict con las claves esperadas")
+            raise 
         
         self._cfg: Dict[str, Any] = config
         self._cfg_obj = SimpleNamespace(**config)
@@ -30,17 +32,21 @@ class BaseExtractorSFTP():
         required = ["host", "port", "username", "remote_dir", "specific_filename", "local_dir"]
         missing = [k for k in required if k not in c or c[k] in (None, "")]
         if missing:
-            return {
+            retornoinfo={
                 "status": "error",
                 "code": 500,
-                "message": f"Flata campos {missing}"
-            }
-        print("campos minimos necesarios comprobado")
-        return {
+                "etl_msg": f"Flata campos {missing}"
+                }
+            logger.error("falta campos de conectividad y extraccion al sftp",extra=retornoinfo)
+            raise
+        
+        retornoinfo={
                 "status": "success",
                 "code": 200,
-                "message": f"Todo correcto"
+                "etl_msg": f"Todo correcto"
             }
+        logger.info("campos minimos necesarios comprobado")
+        return retornoinfo
        
     @property
     def config(self) -> SimpleNamespace:
@@ -59,19 +65,23 @@ class BaseExtractorSFTP():
             sftp = paramiko.SFTPClient.from_transport(transport)
             sftp.close()
             transport.close()
-            print('conexion exitosa')
-            return {
+            logger.info(f"Conexión exitosa al sftp {self.config.host}")
+
+            retornoinfo= {
             "status": "success",
             "code": 200,
-            "message": "Conexión exitosa"
+            "etl_msg": "Conexión exitosa"
             }
+            return retornoinfo
         except Exception as e:
-            print('error de conexion: -- ', e) 
-            return {
+            retornoinfo={
                 "status": "error",
                 "code": 401,
-                "message": f"Conexión exitosa:  {str(e)}"
+                "etl_msg": f"Error de conectividad, :  {str(e)}"
             }
+            logger.error(f"Error de conectividad {e}",extra=retornoinfo)
+  
+        
        
     # ----------
     #  EXTRAE DATOS
@@ -97,36 +107,36 @@ class BaseExtractorSFTP():
 
                 asegurar_directorio_sftp(sftp, ruta_local)
                 sftp.rename(rutasftp + '/' + archivo, ruta_local + '/' + archivo)
-                print(f"Archivo movido con éxito de {rutasftp+'/'+archivo} a {ruta_local}")
-
+            
+                logger.info(f"Archivo movido con éxito de {rutasftp+'/'+archivo} a {ruta_local}")
 
             else:    
                 try:
                     os.makedirs(ruta_local, exist_ok=True)
-    
-                    print("se creó : ",ruta_local)
+                    logger.info(f"Se creó la ruta para mover : {ruta_local}")
+
                 except:
-                    print('la carpeta ya existe')
+                    logger.info("la carpeta ya existe, no se crea carpeta para mover")
                     
                 sftp.get(rutasftp+'/'+archivo, ruta_local+'/'+archivo)
             
             sftp.close()    
             transport.close()
-            print("se extrajo correctamente")
-            return {
+            logger.info(f"se extrajo correctamente el archivo ruta: {ruta_local+'/'+archivo }")
+            retornoinfo= {
             "status": "success",
             "code": 200,
-            "message": "se extrajo correctamente en "+ ruta_local+'/'+archivo ,
+            "etl_msg": "se extrajo correctamente en "+ ruta_local+'/'+archivo ,
             "ruta": ruta_local+'/'+archivo
             }
+            return retornoinfo
         
         except Exception as e:
-            print('error de extracción', e)
-            return {
+            retornoinfo= {
             "status": "error",
             "code": 500,
-            "message": f"Error de estracción, error->: {e}"
+            "etl_msg": f"Error de estracción, error->: {e}"
             }
-       
+            logger.error(f"Error de extracción {e}" , extra=retornoinfo)
 
 

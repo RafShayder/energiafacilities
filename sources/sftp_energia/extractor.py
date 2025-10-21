@@ -1,6 +1,7 @@
 
 from core.base_stractor import BaseExtractorSFTP
 from core import utils
+utils.setup_logging("INFO")
 
 def extraersftp_energia():
     config = utils.load_config()
@@ -8,13 +9,8 @@ def extraersftp_energia():
     Extractor = BaseExtractorSFTP(
         config=sftp_config
     )
-
-    conectividad=Extractor.validar_conexion()
-    if not (conectividad['status']=="success"):
-       return conectividad
-    camposvalidos=Extractor.validate()
-    if not (camposvalidos['status']=="success"):
-        return camposvalidos
+    Extractor.validar_conexion()
+    Extractor.validate() #validar datos
     metastraccion=Extractor.extract()
     return metastraccion
 

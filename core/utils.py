@@ -4,10 +4,11 @@ from envyaml import EnvYAML
 from pathlib import Path
 from dotenv import load_dotenv
 import os
-from core.exceptions import ConfigError #agregar las excepciones
+import shutil
 import json
-def osraiz() -> str:
-    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+logger = logging.getLogger(__name__)
 
 def setup_logging(level: str = "INFO") -> None:
     logging.basicConfig(
@@ -16,9 +17,7 @@ def setup_logging(level: str = "INFO") -> None:
     )
 
 
-class ConfigError(Exception):
-    """Excepción personalizada para errores de configuración."""
-    pass
+
 
 def load_config(env: str | None = None) -> dict:
     """
@@ -41,15 +40,18 @@ def load_config(env: str | None = None) -> dict:
         config_path = f"config/config_{env}.yaml"
         
         if not os.path.exists(config_path):
-            raise ConfigError(f"No existe el archivo de configuración: {config_path}")
+            logger.error(f"No existe el archivo de configuración: {config_path}")
+            raise 
         # Cargar YAML con envyaml (hace el reemplazo automático)
         cfg = EnvYAML(config_path, strict=False)
         return dict(cfg)
 
     except FileNotFoundError as e:
-        raise ConfigError(f"No se encontró el archivo: {e}") from e
+        logger.error(f"No se encontró el archivo: {e}")
+        raise
     except Exception as e:
-        raise ConfigError(f"Error al cargar configuración: {e}") from e
+        logger.error(f"Error al cargar configuración: {e}")
+        raise
 
 
 
@@ -62,7 +64,7 @@ def asegurar_directorio_sftp(sftp, ruta_completa):
         try:
             a=sftp.stat(path_actual) 
         except FileNotFoundError:
-            print(f"Creando carpeta: {path_actual}")
+            logger.info(f"Creando carpeta: {path_actual}")
             sftp.mkdir(path_actual)
 
 
@@ -79,6 +81,38 @@ def traerjson(archivo='',valor=None):
         else:
             return datos
 
-def cofiguracion_standar():
-    # modo dev modo prod 
-    return 
+
+
+def borrar_ruta(ruta: str):
+    """
+    Borra el archivo o carpeta indicada.
+    Si se pasa la ruta de un archivo, borra ese archivo.
+    Si se pasa la ruta de una carpeta, borra la carpeta completa y su contenido.
+
+    Ejemplo:
+        borrar_ruta("tmp/sftp_recibps/indra/archivo.xlsx")  # borra solo el archivo
+        borrar_ruta("tmp/sftp_recibps/indra")              # borra toda la carpeta 'indra'
+    """
+    ruta = os.path.abspath(ruta) 
+
+    if not os.path.exists(ruta):
+        logger.warning(f"La ruta no existe: {ruta}")
+        return
+
+    try:
+        if os.path.isfile(ruta):
+            os.remove(ruta)
+            logger.info(f"Archivo eliminado: {ruta}")
+
+        elif os.path.isdir(ruta):
+            shutil.rmtree(ruta)
+            logger.info(f"Carpeta eliminada con todo su contenido: {ruta}")
+     
+
+        else:
+            logger.warning(f"Tipo de ruta desconocido no se eliminó ninguna carpeta temporal: {ruta}")
+         
+
+    except Exception as e:
+        logger.warning(f"Error al borrar '{ruta}': {e}")
+        
