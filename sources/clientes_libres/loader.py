@@ -5,19 +5,18 @@ def load_sftp_energia(filepath=None):
     
     config = load_config()
     postgres_config = config.get("postgress", {})
-    general_config = config.get("sftp_energia", {})
+    general_config = config.get("clientes_libres", {})
     Loader = BaseLoaderPostgres(
             config=postgres_config,
             configload=general_config
         )
 
     Loader.validar_conexion()
-    columnas =traerjson(archivo='config/columnas/columns_map.json',valor='tablarecibosenergia')
-    Loader.verificar_datos(data=general_config['local_dir'] +'/'+ general_config['specific_filename'] ,column_mapping=columnas)
+    Loader.verificar_datos(data=general_config['local_destination_dir'])
 
     if not (filepath):
-        filepath=general_config['local_dir'] +'/'+ general_config['specific_filename']
-    carga=Loader.load_data(data=filepath, column_mapping=columnas )
+        filepath=general_config['local_destination_dir']
+    carga=Loader.load_data(data=filepath )
     return carga
 
 setup_logging("INFO")
