@@ -1,5 +1,5 @@
 from core.base_loader import BaseLoaderPostgres
-from core.utils import traerjson,setup_logging,load_config
+from core.utils import traerjson,load_config
 
 def load_sftp_web_indra(filepath=None):
     
@@ -22,8 +22,5 @@ def load_sftp_web_indra(filepath=None):
     return carga
 
 
-setup_logging("INFO")
-
-load_sftp_web_indra()
 
 

@@ -1,8 +1,7 @@
 
 from core.base_stractor import BaseExtractorSFTP
-from core.utils import setup_logging, load_config
+from core.utils import  load_config
 
-setup_logging("DEBUG")
 
 def extraersftp_energia():
     config = load_config()
@@ -16,5 +15,3 @@ def extraersftp_energia():
     Extractor.validate() #validar datos del sftp
     metastraccion=Extractor.extract()
     return metastraccion
-
-extraersftp_energia() 

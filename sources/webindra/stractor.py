@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timezone
 from pathlib import Path
 
-from core.utils import setup_logging, load_config 
+from core.utils import  load_config 
 logger = logging.getLogger(__name__)
 
 
@@ -153,6 +153,3 @@ def extractor():
     except Exception as e:
         logger.error(f"Proceso fallido: {e}")
 
-setup_logging("INFO")
-
-extractor()

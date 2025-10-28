@@ -1,5 +1,5 @@
 mode: "${ENV_MODE}"
-logging_level: INFO
+logging_level: "${LOGGING_LEVEL}"
 #---------------potgress----------------------------------
 postgress:
   user: "${POSTGRES_USER}"
@@ -25,7 +25,8 @@ sftp_energia:
   errorconfig: {
     schema: "RAW",
     table : "",
-    limmit: 100
+    limmit: 100,
+    remote_dir: "/daas/dev/energy-facilities/"
   }
 
 #------------Base de sitios-------------------------------------
@@ -56,7 +57,7 @@ sftp_base_sitios_bitacora:
 #--------------web indra--------------------------
 
 webindra_energia:
-  specific_filename: "indra_diciembre.xlsx"
+  specific_filename: "recibos_energia_indra.xlsx"
   schema: "RAW"
   table: "web_mm_indra_energia"
   local_dir: "tmp/web_indra"
@@ -92,3 +93,5 @@ clientes_libres:
   table: "sftp_mm_clientes_libres"
   if_exists: "replace"         # 'append' | 'replace' | 'fail'
   store_processed_insert: ""
+
+

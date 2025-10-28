@@ -1,8 +1,7 @@
 
 from core.base_stractor import BaseExtractorSFTP
-from core.utils import setup_logging, load_config , generar_archivo_especifico
+from core.utils import  load_config , generar_archivo_especifico
 
-setup_logging("INFO")
 
 def extraersftp_energia():
     config = load_config()
@@ -15,8 +14,7 @@ def extraersftp_energia():
     Extractor.validar_conexion()
     Extractor.validate() #validar datos del sftp
     archivos=Extractor.listar_archivos()
-    archivoextraer=generar_archivo_especifico(lista_archivos=archivos,basearchivo=sftp_config_others['specific_filename'], periodo='202506')
+    archivoextraer=generar_archivo_especifico(lista_archivos=archivos,basearchivo=sftp_config_others['specific_filename'])
     metastraccion=Extractor.extract(specific_file=archivoextraer)
     return metastraccion
 
-extraersftp_energia()

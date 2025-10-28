@@ -22,7 +22,19 @@ def load_sftp_base_sitos(config_name,jsontablanames,sheetname ,filepath=None): #
 
 
 
+def loader_basesitios():
+    config_name='sftp_base_sitios'
+    jsontablanames='tablabasedesitios'
+    sheetname='Base de Sitios'
+    carga=load_sftp_base_sitos(config_name,jsontablanames,sheetname)
+    return carga
+def loader_bitacora_basesitios():
+    config_name='sftp_base_sitios_bitacora'
+    jsontablanames='tablabasedesitiosbitacora'
+    sheetname='Bitacora'
+    carga=load_sftp_base_sitos(config_name,jsontablanames,sheetname)
+    return carga
 
 
-setup_logging("INFO")
+
 
