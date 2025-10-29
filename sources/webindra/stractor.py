@@ -133,7 +133,7 @@ def run_scraper(cfg: dict) -> Path:
         path.write_bytes(data)
 
         logger.info(f"Archivo guardado correctamente: {path}")
-        return path
+        return str(path)
 
     except Exception as e:
         logger.error(f"Error al guardar archivo: {e}")
@@ -144,12 +144,16 @@ def run_scraper(cfg: dict) -> Path:
 # USO
 # ===========================
 
-def extractor():
+def stractor_indra()-> Path | None:
+    """Si todo okey, retorna el path del archivo guardado, sino None."""
+    
     config = load_config()
     configwebindra = config.get("webindra_energia", {})
     try:
         path = run_scraper(configwebindra)
         logger.info(f"Proceso finalizado correctamente: {path}")
+        return path
     except Exception as e:
         logger.error(f"Proceso fallido: {e}")
+        raise
 

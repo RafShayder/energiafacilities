@@ -133,6 +133,7 @@ class BaseLoaderPostgres:
     ):
         """Carga datos a PostgreSQL (usa mapeo invertido DB ➜ Excel)."""
         try:
+
             if isinstance(data, pd.DataFrame):
                 df = data
             elif isinstance(data, str) and data.lower().endswith((".xlsx", ".xls")):

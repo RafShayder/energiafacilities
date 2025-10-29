@@ -1,4 +1,5 @@
 from __future__ import annotations
+from math import log
 import os
 import logging
 import tempfile
@@ -62,23 +63,77 @@ class FileExporter:
         self,
         df: pd.DataFrame,
         destination_path: str,
-        index: bool = False
+        index: bool = False,
+        target_tz: str = "America/Lima"
     ) -> str:
-        """Guarda un DataFrame a CSV o Excel en una ruta local, creando carpetas si es necesario."""
-        try:
-            self._ensure_dir(destination_path)
-            if destination_path.lower().endswith(".csv"):
-                df.to_csv(destination_path, index=index, encoding="utf-8-sig")
-            elif destination_path.lower().endswith((".xlsx", ".xls")):
-                df.to_excel(destination_path, index=index, engine="openpyxl")
-            else:
-                raise ValueError("Formato no soportado. Usa .csv o .xlsx")
-            logger.info(f"Archivo exportado correctamente a {destination_path}")
-            return destination_path
-        except Exception as e:
-            logger.error(f"Error exportando DataFrame: {e}")
-            raise
+        """
+        Exporta DataFrame a CSV/Excel asegurando compatibilidad para Excel.
+        - Convierte datetimes con timezone (tz-aware) a tz-naive.
+        - Por defecto convierte primero a America/Lima antes de quitar el tz.
+        """
 
+        try:
+            # ===============================
+            # Validaciones
+            # ===============================
+            if not isinstance(df, pd.DataFrame):
+                logger.error("El parámetro 'df' no es un DataFrame.")
+                raise
+
+            if not isinstance(destination_path, str):
+                logger.error("El parámetro 'destination_path' no es str.")
+    
+
+            # ===============================
+            # Convertir datetimes tz-aware
+            # ===============================
+            # Creamos copia para no modificar el dataframe original
+            df_export = df.copy()
+
+            tz_cols = df_export.select_dtypes(include=["datetimetz"]).columns
+
+            if len(tz_cols) > 0:
+                logger.info(f"Normalizando columnas datetime con timezone: {list(tz_cols)}")
+
+            for col in tz_cols:
+                try:
+                    df_export[col] = (
+                        df_export[col]
+                        .dt.tz_convert(target_tz)   # Convertimos a TZ deseado
+                        .dt.tz_localize(None)       # Quitamos tz
+                    )
+                except Exception:
+                    # Caso: ya está tz-naive pero dtype incorrecto, o formato raro
+                    df_export[col] = pd.to_datetime(
+                        df_export[col],
+                        errors="coerce"
+                    ).dt.tz_localize(None)
+
+            # ===============================
+            # Crear directorio si no existe
+            # ===============================
+            self._ensure_dir(destination_path)
+
+            # ===============================
+            # Exportar según extensión
+            # ===============================
+            ext = destination_path.lower()
+
+            if ext.endswith(".csv"):
+                df_export.to_csv(destination_path, index=index, encoding="utf-8-sig")
+
+            elif ext.endswith((".xlsx", ".xls")):
+                df_export.to_excel(destination_path, index=index, engine="openpyxl")
+
+            else:
+                raise ValueError("Formato no soportado. Usa .csv, .xlsx o .xls")
+
+            logger.info(f" Archivo exportado correctamente → {destination_path}")
+            return destination_path
+
+        except Exception as e:
+            logger.error(f" Error exportando DataFrame: {e}", exc_info=True)
+            raise
     # =========================================================
     # MOVER ARCHIVOS LOCALES O DF
     # =========================================================
@@ -196,15 +251,17 @@ class FileExporter:
         Exporta un DataFrame directamente a un host remoto, creando las carpetas si no existen.
         """
         if not isinstance(df, pd.DataFrame):
-            raise TypeError("El parámetro 'df' debe ser un pandas.DataFrame.")
+            logger.error("El parámetro 'df' debe ser un pandas.DataFrame.")
+            raise 
         if not filename:
-            raise ValueError("Debe proporcionar un nombre de archivo válido para el DataFrame remoto.")
+            logger.error("Debe proporcionar un nombre de archivo válido para el DataFrame remoto.")
+            raise 
 
         # Ruta completa final
         if not remote_dir.endswith("/"):
             remote_dir += "/"
         remote_path = remote_dir + filename
-
+        logger.debug(f"Exportando DataFrame a remoto: {remote_path}")
         # Extensión
         ext = os.path.splitext(filename)[1].lower() or ".xlsx"
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
@@ -213,9 +270,9 @@ class FileExporter:
         try:
             # Exportar temporal local
             self.export_dataframe(df, temp_file.name, index=index)
-
             # Conectar y crear directorios
             sftp = self._sftp_connect(conn)
+            logger.debug(f"Creando directorios remotos si no existen: {remote_dir}")
             self._mkdirs_remote(sftp, remote_dir)
 
             # Subir archivo
@@ -231,3 +288,8 @@ class FileExporter:
                 os.remove(temp_file.name)
             if 'sftp' in locals():
                 sftp.close()
+
+
+
+
+

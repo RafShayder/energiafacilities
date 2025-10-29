@@ -1,7 +1,7 @@
 from core.base_loader import BaseLoaderPostgres
 from core.utils import traerjson,load_config
 
-def load_sftp_web_indra(filepath=None):
+def load_indra(filepath=None):
     
     config = load_config()
     postgres_config = config.get("postgress", {})

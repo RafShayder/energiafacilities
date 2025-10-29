@@ -1,10 +1,9 @@
 
 from core.base_stractor import BaseExtractorSFTP
-from core.utils import setup_logging, load_config , generar_archivo_especifico
+from core.utils import load_config
 
-setup_logging("INFO")
 
-def extraersftp_energia():
+def extraersftp_clienteslibres():
     config = load_config()
     sftp_config_connect = config.get("sftp_daas_c", {})
     sftp_config_others =  config.get("clientes_libres", {})
@@ -17,4 +16,3 @@ def extraersftp_energia():
     metastraccion=Extractor.extract()
     return metastraccion
 
-extraersftp_energia()

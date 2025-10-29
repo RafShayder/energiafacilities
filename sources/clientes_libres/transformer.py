@@ -1,7 +1,7 @@
 from .help.transform_helpers import ejecutar_transformacion
-from core.utils import traerjson,setup_logging,load_config
+from core.utils import traerjson,load_config
 
-def load_sftp_web_indra(filepath=None):
+def transformer_clienteslibres(filepath=None):
     
     config = load_config()
     general_config = config.get("clientes_libres", {})
@@ -11,7 +11,4 @@ def load_sftp_web_indra(filepath=None):
     return df
 
 
-setup_logging("INFO")
-
-load_sftp_web_indra()
 

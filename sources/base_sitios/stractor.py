@@ -3,7 +3,7 @@ from core.base_stractor import BaseExtractorSFTP
 from core.utils import  load_config
 
 
-def extraersftp_energia():
+def extraer_basedesitios():
     config = load_config()
     sftp_config_connect = config.get("sftp_daas_c", {})
     sftp_config_others =  config.get("sftp_base_sitios", {})

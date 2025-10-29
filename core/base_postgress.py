@@ -158,7 +158,6 @@ class PostgresConnector:
     def extract(self, config: dict) -> pd.DataFrame:
         """
         Extrae datos de una tabla PostgreSQL según parámetros.
-
         config:
             {
                 "schema": "public",
@@ -168,6 +167,7 @@ class PostgresConnector:
                 "limit": 1000 -> opcional,
                 "batch_size": 5000 -> opcional
             }
+            
         """
         if not isinstance(config, dict):
             raise ValueError("config debe ser un dict con los parámetros de extracción.")

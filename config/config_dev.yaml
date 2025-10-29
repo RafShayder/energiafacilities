@@ -23,7 +23,7 @@ sftp_energia:
   table: "SFTP_MM_CONSUMO_SUMINISTRO"
   if_exists: "replace"         # 'append' | 'replace' | 'fail'
   errorconfig: {
-    schema: "RAW",
+    schema: "raw",
     table : "",
     limmit: 100,
     remote_dir: "/daas/dev/energy-facilities/"
@@ -39,11 +39,11 @@ sftp_daas_c:
 sftp_base_sitios:
   remote_dir: "/daas/dev/energy-facilities/base-sitios/input"
   local_dir: "tmp/sftp_base_sitios"
-  schema: "RAW"
+  schema: "raw"
   table: "FS_MM_BASE_DE_SITIOS"
   if_exists: "replace"         # 'append' | 'replace' | 'fail'
   specific_filename: "BASE DE SITIOS.xlsx"
-  sp_transformacion_tabla: "ods.sp_cargar_fs_hm_base_de_sitios"
+  sp_carga: "ods.sp_cargar_fs_hm_base_de_sitios"
 sftp_base_sitios_bitacora:
   remote_dir: "/daas/dev/energy-facilities/base-sitios/input"
   local_dir: "tmp/sftp_base_sitios"
@@ -51,21 +51,22 @@ sftp_base_sitios_bitacora:
   table: "FS_MM_BITACORA_BASE_SITIOS"
   if_exists: "replace"         # 'append' | 'replace' | 'fail'
   specific_filename: "BASE DE SITIOS.xlsx"
-  sp_transformacion_tabla: "ods.sp_cargar_fs_hm_bitacora_base_sitios"
+  sp_carga: "ods.sp_cargar_fs_hm_bitacora_base_sitios"
 
 
 #--------------web indra--------------------------
 
 webindra_energia:
   specific_filename: "recibos_energia_indra.xlsx"
-  schema: "RAW"
+  schema: "raw"
   table: "web_mm_indra_energia"
   local_dir: "tmp/web_indra"
   if_exists: "replace"         # 'append' | 'replace' | 'fail'
   errorconfig: {
-    schema: "RAW",
-    table : "",
-    limmit: 100
+    schema: "PUBLIC",
+    table : "error_energia_ultimo_lote",
+    limmit: 100,
+    remote_dir: "/daas/dev/energy-facilities/web-indra-errors"
   }
   BASE_URL: "https://recibosttr.com/sistema"
   LOGIN_PATH: "/"
@@ -80,7 +81,7 @@ webindra_energia:
             "Accept": "*/*",
             "Connection": "keep-alive",
         }
-
+  sp_carga: "ods.sp_cargar_web_hm_indra_energia"
 
 #------Clientes libres-------------------------------------------
 
@@ -89,9 +90,8 @@ clientes_libres:
   specific_filename: "F-TELEFONICA-0825(e).xlsx"
   remote_dir: "/daas/dev/energy-facilities/recibos-manuales/input/"
   local_dir: "tmp/sftp_clientes_libres"
-  schema: "RAW"
+  schema: "raw"
   table: "sftp_mm_clientes_libres"
   if_exists: "replace"         # 'append' | 'replace' | 'fail'
-  store_processed_insert: ""
-
+  sp_carga: "ods.sp_cargar_sftp_hm_clientes_libres"
 

@@ -1,7 +1,7 @@
 from core.base_loader import BaseLoaderPostgres
 from core.utils import traerjson,setup_logging,load_config
 
-def load_sftp_energia(filepath=None):
+def load_clienteslibres(filepath=None):
     
     config = load_config()
     postgres_config = config.get("postgress", {})
@@ -19,5 +19,3 @@ def load_sftp_energia(filepath=None):
     carga=Loader.load_data(data=filepath )
     return carga
 
-setup_logging("INFO")
-load_sftp_energia()
