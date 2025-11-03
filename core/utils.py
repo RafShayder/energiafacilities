@@ -7,7 +7,7 @@ import os
 import io
 import shutil
 import json
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 import re
 from typing import List, Optional, Any, Dict
 from types import SimpleNamespace
@@ -127,25 +127,37 @@ def borrar_ruta(ruta: str):
 
 
  # Funciones especificos de SFTP energia:
-
 def generar_archivo_especifico(
-    lista_archivos: List[str],
+    lista_archivos: List[Dict[str, str | datetime]],
     basearchivo: Optional[str] = None,
-    periodo: Optional[str] = None
-) -> Optional[str]:
+    periodo: Optional[str] = None,
+    tipo: Optional[str] = None
+) -> Optional[Dict[str, str | datetime]]:
     """
-    Retorna el archivo Excel más reciente según la versión (vX.Y)
-    del periodo especificado o, si no se pasa, del mes anterior.
+    Retorna el archivo más reciente según:
+      - El nombre base (`basearchivo`)
+      - El periodo especificado (ej. 202509)
+      - La fecha de modificación más reciente
 
-    Ejemplo de nombres esperados:
-    RECIBOSENERGIA-202508v5.6.xlsx
-    RECIBOSENERGIA-202508v4.9.xlsx
-    RECIBOSENERGIA-202508v5.8.xlsx
+    Si no se pasa periodo, usa el mes anterior al actual.
+    Si no se pasa tipo, busca entre todos los tipos.
+
+    Ejemplo:
+        basearchivo = "reporte-consumo-energia-PD"
+        periodo = "202509"
+        tipo = "xlsx"
+
+    Retorna un dict con:
+        {'nombre': 'reporte-consumo-energia-PD-202509v2.xlsx', 
+         'fecha_modificacion': datetime(...), 
+         'tipo': 'xlsx'}
     """
-    if(basearchivo.endswith((".xlsx",".xls",".csv"))):
-        return basearchivo
+    if not lista_archivos:
+        logger.warning("Lista de archivos vacía.")
+        return None
+
     # -------------------------------
-    # Determinar el periodo
+    # Determinar el periodo (por defecto mes anterior)
     # -------------------------------
     if not periodo:
         hoy = date.today()
@@ -153,45 +165,33 @@ def generar_archivo_especifico(
         periodo = f"{ultimo_dia_mes_anterior.year}{ultimo_dia_mes_anterior.month:02d}"
 
     # -------------------------------
-    # Filtrar por basearchivo y periodo
+    # Filtrar por nombre base, periodo y tipo
     # -------------------------------
-    archivos_filtrados = [
-        f for f in lista_archivos
-        if f.endswith(".xlsx")
-        and (basearchivo is None or f.startswith(basearchivo))
-        and periodo in f
-    ]
+    archivos_filtrados = []
+    for f in lista_archivos:
+        nombre = f["nombre"]
+        extension = nombre.split(".")[-1].lower()
+        if (
+            (not basearchivo or nombre.startswith(basearchivo))
+            and (periodo in nombre)
+            and (not tipo or extension == tipo.lower())
+        ):
+            f["tipo"] = extension
+            archivos_filtrados.append(f)
 
-    logger.info(f"Se encontró los archivos {archivos_filtrados} , se verificará la ultima version")
     if not archivos_filtrados:
-        logger.error(f"Archivo no encontrado, verificar si existe el archivo {archivos_filtrados}")
-        raise
+        logger.error(f"No se encontraron archivos que coincidan con base='{basearchivo}', periodo='{periodo}'")
+        return None
 
     # -------------------------------
-    # Extraer versión (vX.Y)
+    # Seleccionar el archivo con mayor fecha_modificacion
     # -------------------------------
-    def extraer_version(nombre: str):
-        """
-        Extrae la versión mayor y menor del nombre de archivo.
-        Devuelve una tupla (major, minor) como floats para comparar.
-        """
-        match = re.search(r"v(\d+)\.(\d+)", nombre)
-        if match:
-            major = int(match.group(1))
-            minor = int(match.group(2))
-            return (major, minor)
-        else:
-            return (0, 0)
+    archivo_mas_reciente = max(archivos_filtrados, key=lambda x: x["fecha_modificacion"])
 
-    # -------------------------------
-    # Obtener el archivo con la mayor versión
-    # -------------------------------
-    archivo_mas_reciente = max(
-        archivos_filtrados,
-        key=lambda x: extraer_version(x)
-    )
+    logger.debug(f"Archivo seleccionado: {archivo_mas_reciente['nombre']} (modificado {archivo_mas_reciente['fecha_modificacion']})")
 
     return archivo_mas_reciente
+
 
 #Crea carpeta si no existe 
 def crearcarpeta(local_dir: str):

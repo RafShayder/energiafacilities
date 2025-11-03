@@ -18,13 +18,19 @@ sftp_energia_c:
 sftp_energia:
   remote_dir: "/REPORTES_CONSUMOS"
   local_dir: "tmp/sftp_energia"
-  specific_filename: "reporte-consumo-energia"
+  specific_filename: "reporte-consumo-energia-PD"
+  specific_filename2: "reporte-consumo-energia-DA"
   schema: "RAW"
-  table: "SFTP_MM_CONSUMO_SUMINISTRO"
+  table: "SFTP_MM_CONSUMO_SUMINISTRO" # Old not functional
+  table_DA: "SFTP_MM_CONSUMO_SUMINISTRO_DA"
+  table_PD: "SFTP_MM_CONSUMO_SUMINISTRO_PD"
   if_exists: "replace"         # 'append' | 'replace' | 'fail'
+  sp_carga: "ods.sp_cargar_sftp_hm_consumo_suministro" #Old not functional
+  sp_carga_DA: "ods.sp_cargar_sftp_hm_consumo_suministro_da"
+  sp_carga_PD: "ods.sp_cargar_sftp_hm_consumo_suministro_pd"
   errorconfig: {
-    schema: "raw",
-    table : "",
+    schema: "PUBLIC",
+    table : "error_energia_ultimo_lote",
     limmit: 100,
     remote_dir: "/daas/dev/energy-facilities/"
   }
@@ -44,6 +50,7 @@ sftp_base_sitios:
   if_exists: "replace"         # 'append' | 'replace' | 'fail'
   specific_filename: "BASE DE SITIOS.xlsx"
   sp_carga: "ods.sp_cargar_fs_hm_base_de_sitios"
+  
 sftp_base_sitios_bitacora:
   remote_dir: "/daas/dev/energy-facilities/base-sitios/input"
   local_dir: "tmp/sftp_base_sitios"
@@ -66,7 +73,7 @@ webindra_energia:
     schema: "PUBLIC",
     table : "error_energia_ultimo_lote",
     limmit: 100,
-    remote_dir: "/daas/dev/energy-facilities/web-indra-errors"
+    remote_dir: "/daas/dev/energy-facilities/errors"
   }
   BASE_URL: "https://recibosttr.com/sistema"
   LOGIN_PATH: "/"

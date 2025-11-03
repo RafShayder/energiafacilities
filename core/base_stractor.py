@@ -5,7 +5,7 @@ import paramiko
 from types import SimpleNamespace
 from core.utils import asegurar_directorio_sftp
 import logging
-
+from datetime import datetime
 logger = logging.getLogger(__name__)
 
 class BaseExtractorSFTP:
@@ -128,7 +128,28 @@ class BaseExtractorSFTP:
         except Exception as e:
             logger.error(f"Error al listar archivos en {ruta}: {e}")
             raise
-
+    # Funcion que trae el nombre de archivo(como hace list_dir) pero tambien la fecha de modificacion y otros atributos en una lista de objetos json
+    def listar_archivos_atributos(self, ruta_remota: str | None = None) -> List[paramiko.SFTPAttributes]:
+        ruta = ruta_remota or self.paths.remote_dir
+        try:
+            sftp = self.conectar_sftp()
+            archivos_atributos = sftp.listdir_attr(ruta)
+            archivos = []
+            for attr in archivos_atributos:
+                fecha = datetime.fromtimestamp(attr.st_mtime)
+                archivos.append({
+                    "nombre": attr.filename,
+                    "fecha_modificacion": fecha,
+                    "tipo": attr.filename.split(".")[-1].lower() if "." in attr.filename else ""
+                })
+            sftp.close()
+            logger.info(f"Atributos de archivos encontrados en {ruta}")
+            return archivos
+        except Exception as e:
+            logger.error(f"Error al listar atributos de archivos en {ruta}: {e}")
+            raise
+        
+       
     # ----------
     # EXTRAER / MOVER ARCHIVO
     # ----------

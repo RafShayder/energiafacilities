@@ -4,7 +4,7 @@ from core.utils import setup_logging
 from sources.base_sitios.loader import loader_basesitios,loader_bitacora_basesitios
 from sources.base_sitios.run_sp import correr_sp_basesitios ,correr_sp_bitacora
 
-setup_logging("INFO")
+setup_logging(level="INFO")
 
 #ETL Main
 
@@ -22,4 +22,9 @@ loader_basesitios()
 loader_bitacora_basesitios()
 correr_sp_basesitios()
 correr_sp_bitacora()
-
+"""
+    extraer_basedesitios >>loader_basesitios
+    extraer_basedesitios >>loader_bitacora_basesitios
+    loader_basesitios >> correr_sp_basesitios
+    loader_bitacora_basesitios >> correr_sp_bitacora
+"""

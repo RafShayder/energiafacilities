@@ -58,7 +58,7 @@ class BaseLoaderPostgres:
     # ----------
     # VERIFICAR DATOS Y MAPEAR COLUMNAS
     # ----------
-    def verificar_datos(self, data: Any, column_mapping: Optional[Dict[str, str]] = None, sheet_name: str = 0, strictreview=True, numerofilasalto: int =0):
+    def verificar_datos(self, data: Any, column_mapping: Optional[Dict[str, str]] = None, sheet_name: str = 0, strictreview=True, numerofilasalto: int =0, table_name:str =None):
         """Verifica columnas entre origen y tabla destino (mapeo invertido: DB ➜ Excel)."""
         try:
             # --- Leer DataFrame ---
@@ -72,6 +72,7 @@ class BaseLoaderPostgres:
                 df = pd.read_csv(data,skiprows=numerofilasalto)
                 origen = f"CSV ({data})"
             else:
+                
                 raise ValueError("Formato no soportado (DataFrame, Excel o CSV)")
 
             logger.info(f"{origen} leído correctamente con {len(df.columns)} columnas.")
@@ -93,7 +94,7 @@ class BaseLoaderPostgres:
                         WHERE table_schema = LOWER(%s)
                           AND table_name = LOWER(%s)
                         ORDER BY ordinal_position;
-                    """, (self._cfgload.schema, self._cfgload.table))
+                    """, (self._cfgload.schema, table_name or self._cfgload.table))
                     columnas_tabla = {r[0] for r in cur.fetchall()}
 
             sobrantes = columnas_origen - columnas_tabla
@@ -129,9 +130,19 @@ class BaseLoaderPostgres:
         sheet_name: str = 0,
         batch_size: Optional[int] = None,
         column_mapping: Optional[Dict[str, str]] = None,
-        numerofilasalto:int =0
+        numerofilasalto:int =0,
+        modo=None,
+        table_name:str =None
     ):
-        """Carga datos a PostgreSQL (usa mapeo invertido DB ➜ Excel)."""
+        """Carga datos a PostgreSQL (usa mapeo invertido DB ➜ Excel).
+        Parámetros:
+        - data: DataFrame o ruta a archivo Excel/CSV.
+        - sheet_name: nombre o índice de hoja (si es Excel).
+        - batch_size: tamaño de lote para inserción.
+        - column_mapping: mapeo de columnas (DB ➜ Excel).
+        - numerofilasalto: número de filas a saltar al leer el archivo.
+        - modo: política de inserción ('replace', 'append', 'fail').
+        """
         try:
 
             if isinstance(data, pd.DataFrame):
@@ -157,7 +168,7 @@ class BaseLoaderPostgres:
         
             batch = batch_size or getattr(self._cfgload, "chunksize", 10000)
             logger.info(f"Iniciando carga: {len(df)} filas, {len(df.columns)} columnas")
-            return self.insert_dataframe(df, batch_size=batch)
+            return self.insert_dataframe(df, batch_size=batch, modo=modo, table_name=None)
 
         except Exception as e:
             logger.error(f"Error al cargar los datos: {e}")
@@ -166,7 +177,7 @@ class BaseLoaderPostgres:
     # ----------
     # INSERCIÓN POR LOTES
     # ----------
-    def insert_dataframe(self, df: pd.DataFrame, batch_size: int = 10000):
+    def insert_dataframe(self, df: pd.DataFrame, batch_size: int = 10000, modo: str = None, table_name: str =None):
         if df.empty:
             msg = "DataFrame vacío, no hay datos para insertar"
             logger.error(msg)
@@ -176,7 +187,7 @@ class BaseLoaderPostgres:
             cols = ', '.join(df.columns)
             full_table = f"{self._cfgload.schema}.{self._cfgload.table}"
             total_rows = len(df)
-            modo = getattr(self._cfgload, "if_exists", "replace").lower()
+            modo =modo or getattr(self._cfgload, "if_exists", "replace").lower()
 
             with self._connect() as conn:
                 with conn.cursor() as cur:
@@ -187,7 +198,7 @@ class BaseLoaderPostgres:
                             WHERE table_schema = LOWER(%s)
                               AND table_name = LOWER(%s)
                         );
-                    """, (self._cfgload.schema, self._cfgload.table))
+                    """, (self._cfgload.schema, table_name or self._cfgload.table))
                     tabla_existe = cur.fetchone()[0]
 
                     # Política de inserción

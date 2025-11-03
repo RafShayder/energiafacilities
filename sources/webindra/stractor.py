@@ -123,7 +123,7 @@ def run_scraper(cfg: dict) -> Path:
         # Si se definió nombre específico en config
         if "specific_filename" in cfg and cfg["specific_filename"]:
             name = cfg["specific_filename"]
-            print(" es name : ", name)
+
             if not name.lower().endswith(".xlsx"):
                 name += ".xlsx"
         else:
