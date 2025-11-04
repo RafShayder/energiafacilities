@@ -1,3 +1,4 @@
+# todo ok, pero al no haber archivo con el periodo, se está usando el 202509
 from sources.sftp_energia.stractor import extraersftp_energia_PD,extraersftp_energia_DA
 from core.utils import setup_logging
 from sources.sftp_energia.loader import load_sftp_energia_DA, load_sftp_energia_PD

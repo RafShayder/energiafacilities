@@ -159,12 +159,13 @@ class BaseExtractorSFTP:
             remote_dir = self.paths.remote_dir
             local_dir = self.paths.local_dir
             archivo = specific_file or getattr(self.paths, "specific_filename", None)
-
+    
             if not archivo:
                 raise ValueError("Debe especificarse un archivo para la extracción.")
 
             if remotetransfere:
                 asegurar_directorio_sftp(sftp, local_dir)
+               
                 sftp.rename(f"{remote_dir}/{archivo}", f"{local_dir}/{archivo}")
                 msg = f"Archivo movido con éxito de {remote_dir}/{archivo} a {local_dir}"
                 logger.info(msg)

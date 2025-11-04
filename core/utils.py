@@ -193,6 +193,57 @@ def generar_archivo_especifico(
     return archivo_mas_reciente
 
 
+def archivoespecifico_periodo(
+    lista_archivos: List[str],
+    basearchivo: Optional[str] = None,
+    periodo: Optional[str] = None,
+    tipo: Optional[str] = None
+    ):
+    #si nos pasan un nombre, generamos el perido anterior al actual, y si nos pasan el periodo, sería con este periodo
+    if not periodo:
+        hoy = date.today()
+        ultimo_dia_mes_anterior = hoy.replace(day=1) - timedelta(days=1)
+        periodo = f"{ultimo_dia_mes_anterior.year}{ultimo_dia_mes_anterior.month:02d}"
+    nombre_archivo=f"{basearchivo}_{periodo}{tipo or ".xlsx"}"
+    if nombre_archivo not in lista_archivos:
+        logger.error(f"No hay archivo a extraer: {nombre_archivo}")
+        raise
+    return nombre_archivo
+
+def archivoespecifico_periodo_CL(
+    lista_archivos: List[str],
+    basearchivo: Optional[str] = None,
+    periodo: Optional[str] = None,
+    tipo: Optional[str] = None
+    ):
+    """_summary_
+
+    Args:
+        lista_archivos (List[str]): _description_
+        basearchivo (Optional[str], optional): _description_. Defaults to None.
+        periodo (Optional[str], optional): _description_. Defaults to None.
+        tipo (Optional[str], optional): _description_. Defaults to None.
+
+    Returns:
+        foramto_periodo(e).xlsx
+        ejemplo_1225(e).xslx
+    """
+    #si nos pasan un periodo generamos el perido anterior al actual formato messaño(año en dos digitos) ejem: 0225, y si nos pasan el periodo, sería con este periodo
+    if not periodo:
+        hoy = date.today()
+        ultimo_dia_mes_anterior = hoy.replace(day=1) - timedelta(days=1)
+        # Formato messaño con año en dos dígitos, p. ej. 0225
+        periodo = f"{ultimo_dia_mes_anterior.month:02d}{ultimo_dia_mes_anterior.year % 100:02d}"
+    # si se pasó periodo, se usa tal cual
+    nombre_archivo = f"{basearchivo}-{periodo}(e){tipo or '.xlsx'}"
+    
+    if nombre_archivo not in lista_archivos:
+        logger.error(f"No hay archivo a extraer: {nombre_archivo}")
+        raise
+    return nombre_archivo
+
+
+
 #Crea carpeta si no existe 
 def crearcarpeta(local_dir: str):
     try:
@@ -203,4 +254,5 @@ def crearcarpeta(local_dir: str):
     finally:
         logger.error("No se puede crear la carpeta")
         raise
+
 
