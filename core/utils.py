@@ -4,15 +4,10 @@ from envyaml import EnvYAML
 from pathlib import Path
 from dotenv import load_dotenv
 import os
-import io
 import shutil
 import json
 from datetime import date, timedelta, datetime
-import re
-from typing import List, Optional, Any, Dict
-from types import SimpleNamespace
-import pandas as pd
-import paramiko
+from typing import List, Optional, Dict
 import sys
 
 logger = logging.getLogger(__name__)
@@ -72,7 +67,7 @@ def asegurar_directorio_sftp(sftp, ruta_completa):
         try:
             a=sftp.stat(path_actual) 
         except FileNotFoundError:
-            logger.info(f"Creando carpeta: {path_actual}")
+            logger.debug(f"Creando carpeta: {path_actual}")
             sftp.mkdir(path_actual)
 
 
@@ -110,11 +105,11 @@ def borrar_ruta(ruta: str):
     try:
         if os.path.isfile(ruta):
             os.remove(ruta)
-            logger.info(f"Archivo eliminado: {ruta}")
+            logger.debug(f"Archivo eliminado: {ruta}")
 
         elif os.path.isdir(ruta):
             shutil.rmtree(ruta)
-            logger.info(f"Carpeta eliminada con todo su contenido: {ruta}")
+            logger.debug(f"Carpeta eliminada con todo su contenido: {ruta}")
      
 
         else:
